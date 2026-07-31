@@ -5,14 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Annuaire des entreprises</title>
 <style>
+  /* ==================================================================
+     PALETTE DE COULEURS
+     - Rouge principal : #9a2243
+     - Or / doré : utilisé pour les accents et le titre
+     - Fond : gris foncé (thème sombre)
+     ================================================================== */
   :root {
-    --primary: #2c5f8a;
-    --primary-dark: #1e4363;
-    --bg: #f4f6f8;
-    --border: #d7dde2;
-    --text: #22303c;
+    --rouge: #9a2243;
+    --rouge-clair: #c22e56;
+    --or: #d4af37;
+    --or-clair: #e8ca6a;
+    --bg: #1c1c1f;          /* fond général de la page */
+    --bg-carte: #262629;    /* fond des cartes / de la modale */
+    --bg-input: #333338;    /* fond des champs de saisie */
+    --border: #3d3d42;
+    --text: #eceff1;        /* texte principal (clair, sur fond sombre) */
+    --text-muted: #a0a5ab;  /* texte secondaire (labels, téléphones...) */
   }
+
   * { box-sizing: border-box; }
+
   body {
     font-family: 'Segoe UI', Arial, sans-serif;
     background: var(--bg);
@@ -20,21 +33,49 @@
     margin: 0;
     padding: 24px;
   }
-  .page {
-    max-width: 900px;
-    margin: 0 auto;
-  }
+
+  .page { max-width: 900px; margin: 0 auto; }
+
+  /* ---------- En-tête de page : titre + bouton d'ajout ---------- */
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
   }
   .page-header h1 {
     font-size: 22px;
-    color: var(--primary-dark);
+    color: var(--or);
     margin: 0;
+    letter-spacing: 0.02em;
   }
+
+  /* ---------- Barre de recherche ---------- */
+  .barre-recherche {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+    background: var(--bg-carte);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+  }
+  .barre-recherche svg { flex-shrink: 0; }
+  .barre-recherche input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 14px;
+    padding: 4px 0;
+  }
+  .barre-recherche input::placeholder { color: var(--text-muted); }
+
+  /* ---------- Boutons génériques ---------- */
   .btn {
     border: none;
     border-radius: 6px;
@@ -42,16 +83,23 @@
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
+    transition: background 0.15s ease;
   }
-  .btn-primary { background: var(--primary); color: #fff; }
-  .btn-primary:hover { background: var(--primary-dark); }
-  .btn-secondary { background: #eef3f7; color: var(--primary-dark); }
-  .btn-danger { background: #fdeceb; color: #c0392b; }
+  .btn-primary { background: var(--rouge); color: #fff; }
+  .btn-primary:hover { background: var(--rouge-clair); }
+  .btn-secondary { background: var(--bg-input); color: var(--or-clair); }
+  .btn-secondary:hover { background: #3d3d44; }
+  .btn-danger { background: #3a1f22; color: #e08a8a; }
+  .btn-danger:hover { background: #4a2529; }
+
+  /* ---------- Liste des entreprises (cartes) ---------- */
   #liste { display: flex; flex-direction: column; gap: 14px; }
+
   .carte {
-    background: #fff;
+    background: var(--bg-carte);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--or); /* liseré doré distinctif à gauche */
     border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     padding: 18px 22px;
     display: flex;
     gap: 18px;
@@ -63,22 +111,22 @@
     border-radius: 8px;
     object-fit: contain;
     border: 1px solid var(--border);
-    background: #fafafa;
+    background: #fafafa; /* fond clair pour que les logos transparents ressortent */
     flex-shrink: 0;
   }
-  .carte-contenu { flex: 1; }
+  .carte-contenu { flex: 1; min-width: 0; }
   .carte-nom {
     font-size: 17px;
     font-weight: 700;
-    color: var(--primary-dark);
+    color: var(--or-clair);
     margin: 0 0 8px 0;
   }
   .groupe-role {
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: #6b7a86;
-    font-weight: 600;
+    color: var(--rouge-clair);
+    font-weight: 700;
     margin-top: 8px;
   }
   .personne-ligne {
@@ -87,29 +135,27 @@
     font-size: 14px;
     padding: 2px 0;
   }
-  .personne-ligne .tel { color: #4a5a66; }
-  .carte-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .vide {
-    text-align: center;
-    color: #8a97a1;
-    padding: 40px 0;
-  }
+  .personne-ligne .tel { color: var(--text-muted); }
+  .carte-actions { display: flex; flex-direction: column; gap: 6px; }
+
+  .vide { text-align: center; color: var(--text-muted); padding: 40px 0; }
+
+  /* ==================================================================
+     MODALE (fenêtre de création / édition d'une entreprise)
+     ================================================================== */
   .overlay {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0,0,0,0.6);
     align-items: center;
     justify-content: center;
     z-index: 10;
   }
   .overlay.actif { display: flex; }
   .modal {
-    background: #fff;
+    background: var(--bg-carte);
+    border: 1px solid var(--border);
     border-radius: 10px;
     padding: 26px 30px;
     width: 90%;
@@ -117,13 +163,9 @@
     max-height: 88vh;
     overflow-y: auto;
   }
-  .modal h2 { margin-top: 0; font-size: 18px; color: var(--primary-dark); }
-  .header-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 18px;
-  }
+  .modal h2 { margin-top: 0; font-size: 18px; color: var(--or); }
+
+  .header-row { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
   #logoPreview {
     width: 64px;
     height: 64px;
@@ -132,36 +174,43 @@
     border: 1px solid var(--border);
     background: #fafafa;
   }
+
   label {
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: #6b7a86;
+    color: var(--text-muted);
     font-weight: 600;
   }
   input[type="text"], input[type="tel"], input[type="url"] {
     width: 100%;
     padding: 8px 10px;
+    background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 14px;
     margin-top: 3px;
+    color: var(--text);
   }
+  input::placeholder { color: var(--text-muted); }
+  /* Bordure dorée au focus, pour rester dans la charte */
+  input:focus { outline: none; border-color: var(--or); }
+
   .section-title {
     font-size: 14px;
     font-weight: 700;
-    color: var(--primary-dark);
+    color: var(--rouge-clair);
     margin: 18px 0 8px 0;
   }
   table { width: 100%; border-collapse: collapse; }
   td { padding: 3px 4px; }
-  .role-col { width: 80px; font-size: 13px; color: #6b7a86; }
+  .role-col { width: 80px; font-size: 13px; color: var(--text-muted); }
   .del-col { width: 28px; text-align: center; }
-  .btn-del { background: none; border: none; color: #c0392b; cursor: pointer; font-size: 15px; }
+  .btn-del { background: none; border: none; color: #e08a8a; cursor: pointer; font-size: 15px; }
   .btn-add {
-    background: #eef3f7;
-    border: 1px dashed var(--primary);
-    color: var(--primary-dark);
+    background: var(--bg-input);
+    border: 1px dashed var(--or);
+    color: var(--or-clair);
     padding: 5px 10px;
     border-radius: 6px;
     cursor: pointer;
@@ -177,24 +226,50 @@
     padding-top: 16px;
   }
   #status { font-size: 13px; margin-top: 8px; }
-  #status.error { color: #c0392b; }
-  #status.ok { color: #4a7a4a; }
+  #status.error { color: #e08a8a; }
+  #status.ok { color: var(--or-clair); }
 </style>
 </head>
 <body>
+
 <div class="page">
+
+  <!-- ============================================================
+       EN-TETE : titre de la page + bouton "Nouvelle entreprise"
+       ============================================================ -->
   <div class="page-header">
     <h1>🏢 Annuaire des entreprises</h1>
     <button class="btn btn-primary" onclick="ouvrirModal()">+ Nouvelle entreprise</button>
   </div>
+
+  <!-- ============================================================
+       BARRE DE RECHERCHE : filtre la liste par nom d'entreprise
+       (le filtrage se fait uniquement côté navigateur, en JS,
+       sur les données déjà chargées depuis le Google Sheet)
+       ============================================================ -->
+  <div class="barre-recherche">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a0a5ab" stroke-width="2">
+      <circle cx="11" cy="11" r="7"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+    <input type="text" id="champRecherche" placeholder="Rechercher une entreprise par nom...">
+  </div>
+
+  <!-- Conteneur où les cartes d'entreprises sont injectées dynamiquement -->
   <div id="liste">
     <div class="vide">Chargement...</div>
   </div>
 </div>
+
+<!-- ================================================================
+     MODALE : formulaire d'ajout / édition d'une entreprise
+     (cachée par défaut, affichée via la classe CSS "actif")
+     ================================================================ -->
 <div class="overlay" id="overlay">
   <div class="modal">
     <h2 id="modalTitre">Nouvelle entreprise</h2>
 
+    <!-- Logo + nom de l'entreprise -->
     <div class="header-row">
       <img id="logoPreview" src="https://via.placeholder.com/64?text=Logo">
       <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
@@ -208,12 +283,17 @@
         </div>
       </div>
     </div>
+
+    <!-- Tableau dynamique des patron(ne)s -->
     <div class="section-title">👔 Patron(ne)s</div>
     <table id="tablePatrons"><tbody></tbody></table>
     <button class="btn-add" onclick="ajouterLigne('Patron')">+ Ajouter un(e) patron(ne)</button>
+
+    <!-- Tableau dynamique des adjoint(e)s -->
     <div class="section-title">🧑‍💼 Adjoint(e)s</div>
     <table id="tableAdjoints"><tbody></tbody></table>
     <button class="btn-add" onclick="ajouterLigne('Adjoint')">+ Ajouter un(e) adjoint(e)</button>
+
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="fermerModal()">Annuler</button>
       <button class="btn btn-primary" onclick="sauvegarder()">💾 Enregistrer</button>
@@ -221,32 +301,88 @@
     <div id="status"></div>
   </div>
 </div>
+
 <script>
-  const API_URL = 'https://script.google.com/macros/s/AKfycbzoM-MOqobcTmWpj_4CUrKZ5_G6zIdYg5BnDAFTrVrJbSuEwChjxu6bENRIwKH3dPq7lA/exec';
-  let entrepriseEnCoursId = null; // null = création, sinon édition
+  // ==================================================================
+  // CONFIGURATION
+  // A CONFIGURER : collez ici l'URL de votre déploiement Apps Script
+  // (Déployer > Nouveau déploiement > Application Web > copier l'URL)
+  // Cette URL sert d'API : le HTML lui envoie des requêtes GET (lire)
+  // et POST (créer / modifier / supprimer).
+  // ==================================================================
+  const API_URL = 'https://script.google.com/macros/s/VOTRE_ID_DE_DEPLOIEMENT/exec';
+
+  // Mémorise en local la liste complète reçue du Sheet, pour pouvoir
+  // filtrer/rechercher instantanément sans refaire d'appel réseau.
+  let toutesLesEntreprises = [];
+
+  // ID de l'entreprise actuellement éditée dans la modale.
+  // null = on est en mode "création" plutôt qu'"édition".
+  let entrepriseEnCoursId = null;
+
+  // ------------------------------------------------------------------
+  // CHARGEMENT DES DONNEES depuis l'API (Google Sheet)
+  // ------------------------------------------------------------------
+
+  // Va chercher la liste des entreprises sur l'API, puis l'affiche.
   async function chargerEntreprises() {
     const liste = document.getElementById('liste');
     liste.innerHTML = '<div class="vide">Chargement...</div>';
     try {
-      const res = await fetch(API_URL);
+      const res = await fetch(API_URL); // requête GET simple
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Erreur inconnue');
-      afficherListe(data.entreprises);
+
+      toutesLesEntreprises = data.entreprises || [];
+      appliquerTriEtFiltre(); // trie + affiche (en tenant compte d'une éventuelle recherche déjà tapée)
     } catch (err) {
       liste.innerHTML = '<div class="vide">Erreur de chargement : ' + escapeHtml(err.message) + '</div>';
     }
   }
+
+  // ------------------------------------------------------------------
+  // TRI ALPHABETIQUE + RECHERCHE
+  // ------------------------------------------------------------------
+
+  // Trie les entreprises par nom (A -> Z, insensible aux accents/majuscules),
+  // puis applique le filtre de recherche en cours, et affiche le résultat.
+  function appliquerTriEtFiltre() {
+    const terme = document.getElementById('champRecherche').value.trim().toLowerCase();
+
+    // 1) Tri alphabétique par nom d'entreprise
+    const triees = [...toutesLesEntreprises].sort(function (a, b) {
+      return (a.nom || '').localeCompare(b.nom || '', 'fr', { sensitivity: 'base' });
+    });
+
+    // 2) Filtre sur le nom si l'utilisateur a tapé quelque chose
+    const filtrees = terme
+      ? triees.filter(function (ent) { return (ent.nom || '').toLowerCase().includes(terme); })
+      : triees;
+
+    afficherListe(filtrees);
+  }
+
+  // Relance le tri/filtre à chaque frappe dans la barre de recherche
+  document.getElementById('champRecherche').addEventListener('input', appliquerTriEtFiltre);
+
+  // ------------------------------------------------------------------
+  // AFFICHAGE DE LA LISTE (construction des cartes HTML)
+  // ------------------------------------------------------------------
+
   function afficherListe(entreprises) {
     const liste = document.getElementById('liste');
     liste.innerHTML = '';
 
     if (!entreprises || entreprises.length === 0) {
-      liste.innerHTML = '<div class="vide">Aucune entreprise pour le moment.</div>';
+      liste.innerHTML = '<div class="vide">Aucune entreprise trouvée.</div>';
       return;
     }
+
     entreprises.forEach(function (ent) {
+      // On sépare le personnel en deux groupes : patrons et adjoints
       const patrons = ent.personnes.filter(function (p) { return p.role === 'Patron'; });
       const adjoints = ent.personnes.filter(function (p) { return p.role === 'Adjoint'; });
+
       const carte = document.createElement('div');
       carte.className = 'carte';
       carte.innerHTML =
@@ -263,6 +399,8 @@
       liste.appendChild(carte);
     });
   }
+
+  // Construit le bloc HTML listant les personnes d'un rôle donné (Patron/Adjoint)
   function renderGroupe(titre, personnes) {
     if (personnes.length === 0) return '';
     let html = '<div class="groupe-role">' + titre + '</div>';
@@ -271,14 +409,22 @@
     });
     return html;
   }
+
+  // ------------------------------------------------------------------
+  // MODALE : ouverture / fermeture / remplissage du formulaire
+  // ------------------------------------------------------------------
+
+  // Ouvre la modale. Si "entreprise" est fourni, on est en mode édition
+  // (les champs sont pré-remplis) ; sinon, formulaire vide (création).
   function ouvrirModal(entreprise) {
     document.getElementById('overlay').classList.add('actif');
     document.getElementById('status').textContent = '';
     document.querySelector('#tablePatrons tbody').innerHTML = '';
     document.querySelector('#tableAdjoints tbody').innerHTML = '';
+
     if (entreprise) {
       entrepriseEnCoursId = entreprise.id;
-      document.getElementById('modalTitre').textContent = 'Modifier l\'entreprise';
+      document.getElementById('modalTitre').textContent = "Modifier l'entreprise";
       document.getElementById('logoUrl').value = entreprise.logo || '';
       document.getElementById('nomEntreprise').value = entreprise.nom || '';
       (entreprise.personnes || []).forEach(function (p) {
@@ -292,20 +438,26 @@
     }
     mettreAJourApercuLogo();
   }
+
   function fermerModal() {
     document.getElementById('overlay').classList.remove('actif');
   }
+
+  // Met à jour la miniature du logo affichée dans la modale
+  // à chaque fois que l'utilisateur modifie l'URL du logo.
   function mettreAJourApercuLogo() {
     const url = document.getElementById('logoUrl').value.trim();
     document.getElementById('logoPreview').src = url || 'https://via.placeholder.com/64?text=Logo';
   }
   document.getElementById('logoUrl').addEventListener('input', mettreAJourApercuLogo);
+
+  // Ajoute une ligne (patron ou adjoint) dans le tableau correspondant de la modale
   function ajouterLigne(role, nom, telephone) {
     nom = nom || '';
     telephone = telephone || '';
     const tbody = document.querySelector(role === 'Adjoint' ? '#tableAdjoints tbody' : '#tablePatrons tbody');
     const tr = document.createElement('tr');
-    tr.dataset.role = role;
+    tr.dataset.role = role; // on retient le rôle sur la ligne pour la sauvegarde
     tr.innerHTML =
       '<td class="role-col">' + role + '</td>' +
       '<td><input type="text" class="champ-nom" value="' + escapeHtml(nom) + '" placeholder="Nom"></td>' +
@@ -313,11 +465,16 @@
       '<td class="del-col"><button class="btn-del" onclick="this.closest(\'tr\').remove()">✕</button></td>';
     tbody.appendChild(tr);
   }
+
+  // Echappe le texte pour éviter les injections HTML (sécurité basique)
   function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str == null ? '' : str;
     return div.innerHTML;
   }
+
+  // Parcourt les deux tableaux (patrons + adjoints) et construit
+  // la liste "personnes" à envoyer à l'API lors de la sauvegarde.
   function collecterPersonnes() {
     const personnes = [];
     document.querySelectorAll('#tablePatrons tbody tr, #tableAdjoints tbody tr').forEach(function (tr) {
@@ -329,20 +486,29 @@
     });
     return personnes;
   }
+
+  // ------------------------------------------------------------------
+  // SAUVEGARDE / SUPPRESSION (appels API vers le Google Sheet)
+  // ------------------------------------------------------------------
+
+  // Envoie la création/modification d'une entreprise à l'API,
+  // puis rafraîchit la liste affichée.
   async function sauvegarder() {
     const statusEl = document.getElementById('status');
     statusEl.className = '';
     statusEl.textContent = 'Enregistrement...';
 
     const entreprise = {
-      id: entrepriseEnCoursId,
+      id: entrepriseEnCoursId, // null si nouvelle entreprise
       nom: document.getElementById('nomEntreprise').value.trim(),
       logo: document.getElementById('logoUrl').value.trim(),
       personnes: collecterPersonnes()
     };
+
     try {
-      // Astuce : pas de header Content-Type "application/json" pour éviter
-      // le preflight CORS (non géré par Apps Script). Le body reste du JSON valide.
+      // Astuce : on ne met pas de header "Content-Type: application/json"
+      // pour éviter le "preflight" CORS, qu'Apps Script ne gère pas.
+      // Le corps envoyé reste néanmoins du JSON valide.
       const res = await fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify({ action: 'save', entreprise: entreprise })
@@ -352,13 +518,15 @@
 
       statusEl.className = 'ok';
       statusEl.textContent = '✓ Enregistré';
-      await chargerEntreprises();
+      await chargerEntreprises(); // on recharge pour être synchro avec le Sheet
       setTimeout(fermerModal, 500);
     } catch (err) {
       statusEl.className = 'error';
       statusEl.textContent = 'Erreur : ' + err.message;
     }
   }
+
+  // Demande confirmation puis supprime une entreprise (et son personnel) via l'API
   async function supprimerEntreprise(id) {
     if (!confirm('Supprimer cette entreprise et tout son personnel ?')) return;
     try {
@@ -373,7 +541,12 @@
       alert('Erreur lors de la suppression : ' + err.message);
     }
   }
+
+  // ------------------------------------------------------------------
+  // DEMARRAGE : on charge la liste dès l'ouverture de la page
+  // ------------------------------------------------------------------
   chargerEntreprises();
 </script>
+
 </body>
 </html>
