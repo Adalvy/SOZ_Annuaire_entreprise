@@ -411,7 +411,7 @@
   // Cette URL sert d'API : le HTML lui envoie des requêtes GET (lire)
   // et POST (créer / modifier / supprimer).
   // ==================================================================
-  const API_URL = 'https://script.google.com/macros/s/AKfycbyf9E7ze3WQ1iZwUbYU_Sc4Pw76a3vebgh0mTkzm0evWzSHY4crAIkmUlmRB2w9mWlE2g/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyy5JxbNbsZvH_j1q1JtQIGytg_t2VauZDz0o8zQsusAnkYvtF4sBwiojwirW2mzIE2-g/exec';
 
   // Mémorise en local la liste complète reçue du Sheet, pour pouvoir
   // filtrer/rechercher/trier instantanément sans refaire d'appel réseau.
@@ -653,10 +653,15 @@
     });
   }
 
-  // Ajoute une ligne (nom + téléphone) dans le tableau d'un groupe de rôle donné
+  // Ajoute une ligne (nom + téléphone) dans le tableau d'un groupe de rôle donné.
+  // Si la ligne est toute nouvelle (bouton "+ Ajouter une personne", aucun
+  // argument passé), le téléphone est préempli avec "555-" par défaut.
+  // Si on recharge une personne déjà existante (mode édition), on garde sa
+  // vraie valeur telle quelle, même si elle est vide.
   function ajouterLigneDansGroupe(idGroupe, nom, telephone) {
+    const estNouvelleLigneVide = (nom === undefined && telephone === undefined);
     nom = nom || '';
-    telephone = telephone || '';
+    telephone = telephone !== undefined ? telephone : (estNouvelleLigneVide ? '555-' : '');
     const tbody = document.querySelector('#' + idGroupe + ' tbody');
     const tr = document.createElement('tr');
     tr.innerHTML =
