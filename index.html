@@ -173,6 +173,7 @@
     object-fit: contain;
     border: 1px solid var(--border);
     background: #fafafa;
+    flex-shrink: 0;
   }
 
   label {
@@ -182,7 +183,7 @@
     color: var(--text-muted);
     font-weight: 600;
   }
-  input[type="text"], input[type="tel"], input[type="url"] {
+  input[type="text"], input[type="tel"] {
     width: 100%;
     padding: 8px 10px;
     background: var(--bg-input);
@@ -196,26 +197,81 @@
   /* Bordure dorée au focus, pour rester dans la charte */
   input:focus { outline: none; border-color: var(--or); }
 
-  .section-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--rouge-clair);
-    margin: 18px 0 8px 0;
+  /* Bouton stylé pour le champ "fichier" (upload du logo) */
+  input[type="file"] {
+    display: none;
   }
+  .btn-fichier {
+    display: inline-block;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--or-clair);
+    padding: 7px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    margin-top: 3px;
+  }
+  .btn-fichier:hover { border-color: var(--or); }
+  #nomFichierLogo {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: 8px;
+  }
+
+  /* ---------- Groupes de rôles personnalisés ---------- */
+  .groupe-form {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--rouge);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 12px 0;
+  }
+  .groupe-form-entete {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .champ-nom-role {
+    flex: 1;
+    font-weight: 700;
+    color: var(--or-clair);
+  }
+  .btn-supprimer-groupe {
+    background: none;
+    border: none;
+    color: #e08a8a;
+    cursor: pointer;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .btn-ajouter-groupe {
+    background: none;
+    border: 1px dashed var(--rouge-clair);
+    color: var(--rouge-clair);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    width: 100%;
+    margin-top: 4px;
+  }
+
   table { width: 100%; border-collapse: collapse; }
   td { padding: 3px 4px; }
-  .role-col { width: 80px; font-size: 13px; color: var(--text-muted); }
   .del-col { width: 28px; text-align: center; }
   .btn-del { background: none; border: none; color: #e08a8a; cursor: pointer; font-size: 15px; }
   .btn-add {
-    background: var(--bg-input);
+    background: var(--bg-carte);
     border: 1px dashed var(--or);
     color: var(--or-clair);
     padding: 5px 10px;
     border-radius: 6px;
     cursor: pointer;
     font-size: 12px;
-    margin: 6px 0 4px 0;
+    margin: 6px 0 2px 0;
   }
   .modal-actions {
     display: flex;
@@ -269,13 +325,15 @@
   <div class="modal">
     <h2 id="modalTitre">Nouvelle entreprise</h2>
 
-    <!-- Logo + nom de l'entreprise -->
+    <!-- Logo (upload depuis le PC) + nom de l'entreprise -->
     <div class="header-row">
       <img id="logoPreview" src="https://via.placeholder.com/64?text=Logo">
       <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
         <div>
-          <label>URL du logo</label>
-          <input type="url" id="logoUrl" placeholder="https://.../logo.png">
+          <label>Logo</label><br>
+          <label class="btn-fichier" for="fichierLogo">📁 Choisir une image</label>
+          <input type="file" id="fichierLogo" accept="image/*">
+          <span id="nomFichierLogo"></span>
         </div>
         <div>
           <label>Nom de l'entreprise</label>
@@ -284,15 +342,11 @@
       </div>
     </div>
 
-    <!-- Tableau dynamique des patron(ne)s -->
-    <div class="section-title">👔 Patron(ne)s</div>
-    <table id="tablePatrons"><tbody></tbody></table>
-    <button class="btn-add" onclick="ajouterLigne('Patron')">+ Ajouter un(e) patron(ne)</button>
-
-    <!-- Tableau dynamique des adjoint(e)s -->
-    <div class="section-title">🧑‍💼 Adjoint(e)s</div>
-    <table id="tableAdjoints"><tbody></tbody></table>
-    <button class="btn-add" onclick="ajouterLigne('Adjoint')">+ Ajouter un(e) adjoint(e)</button>
+    <!-- Groupes de rôles personnalisés : chaque groupe a un nom libre
+         (ex. "Patron(ne)s", "Adjoint(e)s", "Comptables"...) et sa liste
+         de personnes (nom + téléphone). -->
+    <div id="groupesRoles"></div>
+    <button class="btn-ajouter-groupe" onclick="ajouterGroupe('')">+ Ajouter un rôle</button>
 
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="fermerModal()">Annuler</button>
@@ -310,7 +364,7 @@
   // Cette URL sert d'API : le HTML lui envoie des requêtes GET (lire)
   // et POST (créer / modifier / supprimer).
   // ==================================================================
-  const API_URL = 'https://script.google.com/macros/s/AKfycbzoM-MOqobcTmWpj_4CUrKZ5_G6zIdYg5BnDAFTrVrJbSuEwChjxu6bENRIwKH3dPq7lA/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbw_C3mSqb3ly3n-zpjbPIL4RkdwegXl87ILJPJMimcPgHEJlrzw-H1zIuM9OIpNZfbqLQ/exec';
 
   // Mémorise en local la liste complète reçue du Sheet, pour pouvoir
   // filtrer/rechercher instantanément sans refaire d'appel réseau.
@@ -319,6 +373,18 @@
   // ID de l'entreprise actuellement éditée dans la modale.
   // null = on est en mode "création" plutôt qu'"édition".
   let entrepriseEnCoursId = null;
+
+  // URL du logo déjà existant (utilisée si l'utilisateur ne change pas l'image)
+  let logoActuelUrl = '';
+
+  // Données de la nouvelle image sélectionnée sur le PC, en attente d'envoi.
+  // Restent à null tant que l'utilisateur n'a pas choisi de nouveau fichier.
+  let nouvelleImageBase64 = null;
+  let nouvelleImageMimeType = null;
+  let nouvelleImageNomFichier = null;
+
+  // Compteur utilisé pour donner un identifiant unique à chaque groupe de rôle créé
+  let compteurGroupe = 0;
 
   // ------------------------------------------------------------------
   // CHARGEMENT DES DONNEES depuis l'API (Google Sheet)
@@ -379,18 +445,13 @@
     }
 
     entreprises.forEach(function (ent) {
-      // On sépare le personnel en deux groupes : patrons et adjoints
-      const patrons = ent.personnes.filter(function (p) { return p.role === 'Patron'; });
-      const adjoints = ent.personnes.filter(function (p) { return p.role === 'Adjoint'; });
-
       const carte = document.createElement('div');
       carte.className = 'carte';
       carte.innerHTML =
         '<img class="logo" src="' + (ent.logo || 'https://via.placeholder.com/56?text=Logo') + '">' +
         '<div class="carte-contenu">' +
           '<div class="carte-nom">' + escapeHtml(ent.nom || '(Sans nom)') + '</div>' +
-          renderGroupe('Patron(ne)s', patrons) +
-          renderGroupe('Adjoint(e)s', adjoints) +
+          renderGroupesPourAffichage(ent.personnes) +
         '</div>' +
         '<div class="carte-actions">' +
           '<button class="btn btn-secondary" onclick=\'ouvrirModal(' + JSON.stringify(ent) + ')\'>Modifier</button>' +
@@ -400,12 +461,28 @@
     });
   }
 
-  // Construit le bloc HTML listant les personnes d'un rôle donné (Patron/Adjoint)
-  function renderGroupe(titre, personnes) {
-    if (personnes.length === 0) return '';
-    let html = '<div class="groupe-role">' + titre + '</div>';
-    personnes.forEach(function (p) {
-      html += '<div class="personne-ligne"><span>' + escapeHtml(p.nom) + '</span><span class="tel">' + escapeHtml(p.telephone) + '</span></div>';
+  // Regroupe la liste de personnes par rôle (peu importe le nom du rôle),
+  // en conservant l'ordre dans lequel les rôles apparaissent, puis construit
+  // le HTML d'affichage groupe par groupe.
+  function renderGroupesPourAffichage(personnes) {
+    const rolesOrdonnes = [];        // ordre d'apparition des rôles
+    const personnesParRole = {};     // role -> tableau de personnes
+
+    (personnes || []).forEach(function (p) {
+      const role = p.role || 'Autre';
+      if (!personnesParRole[role]) {
+        personnesParRole[role] = [];
+        rolesOrdonnes.push(role);
+      }
+      personnesParRole[role].push(p);
+    });
+
+    let html = '';
+    rolesOrdonnes.forEach(function (role) {
+      html += '<div class="groupe-role">' + escapeHtml(role) + '</div>';
+      personnesParRole[role].forEach(function (p) {
+        html += '<div class="personne-ligne"><span>' + escapeHtml(p.nom) + '</span><span class="tel">' + escapeHtml(p.telephone) + '</span></div>';
+      });
     });
     return html;
   }
@@ -419,47 +496,116 @@
   function ouvrirModal(entreprise) {
     document.getElementById('overlay').classList.add('actif');
     document.getElementById('status').textContent = '';
-    document.querySelector('#tablePatrons tbody').innerHTML = '';
-    document.querySelector('#tableAdjoints tbody').innerHTML = '';
+    document.getElementById('groupesRoles').innerHTML = '';
+    document.getElementById('fichierLogo').value = '';
+    document.getElementById('nomFichierLogo').textContent = '';
+
+    // Réinitialise les informations d'image en attente
+    nouvelleImageBase64 = null;
+    nouvelleImageMimeType = null;
+    nouvelleImageNomFichier = null;
 
     if (entreprise) {
       entrepriseEnCoursId = entreprise.id;
+      logoActuelUrl = entreprise.logo || '';
       document.getElementById('modalTitre').textContent = "Modifier l'entreprise";
-      document.getElementById('logoUrl').value = entreprise.logo || '';
       document.getElementById('nomEntreprise').value = entreprise.nom || '';
+      document.getElementById('logoPreview').src = logoActuelUrl || 'https://via.placeholder.com/64?text=Logo';
+
+      // Reconstruit les groupes de rôles à partir des personnes existantes,
+      // en conservant l'ordre d'apparition des rôles.
+      const rolesOrdonnes = [];
+      const personnesParRole = {};
       (entreprise.personnes || []).forEach(function (p) {
-        ajouterLigne(p.role, p.nom, p.telephone);
+        const role = p.role || '';
+        if (!personnesParRole[role]) {
+          personnesParRole[role] = [];
+          rolesOrdonnes.push(role);
+        }
+        personnesParRole[role].push(p);
+      });
+      rolesOrdonnes.forEach(function (role) {
+        ajouterGroupe(role, personnesParRole[role]);
       });
     } else {
       entrepriseEnCoursId = null;
+      logoActuelUrl = '';
       document.getElementById('modalTitre').textContent = 'Nouvelle entreprise';
-      document.getElementById('logoUrl').value = '';
       document.getElementById('nomEntreprise').value = '';
+      document.getElementById('logoPreview').src = 'https://via.placeholder.com/64?text=Logo';
+
+      // Deux groupes par défaut pour rester pratique, mais entièrement
+      // renommables ou supprimables par l'utilisateur.
+      ajouterGroupe('Patron');
+      ajouterGroupe('Adjoint');
     }
-    mettreAJourApercuLogo();
   }
 
   function fermerModal() {
     document.getElementById('overlay').classList.remove('actif');
   }
 
-  // Met à jour la miniature du logo affichée dans la modale
-  // à chaque fois que l'utilisateur modifie l'URL du logo.
-  function mettreAJourApercuLogo() {
-    const url = document.getElementById('logoUrl').value.trim();
-    document.getElementById('logoPreview').src = url || 'https://via.placeholder.com/64?text=Logo';
-  }
-  document.getElementById('logoUrl').addEventListener('input', mettreAJourApercuLogo);
+  // Quand l'utilisateur choisit un fichier image sur son PC :
+  // on le convertit en base64 pour pouvoir l'envoyer à l'API,
+  // et on affiche un aperçu immédiat sans attendre l'enregistrement.
+  document.getElementById('fichierLogo').addEventListener('change', function (event) {
+    const fichier = event.target.files[0];
+    if (!fichier) return;
 
-  // Ajoute une ligne (patron ou adjoint) dans le tableau correspondant de la modale
-  function ajouterLigne(role, nom, telephone) {
+    document.getElementById('nomFichierLogo').textContent = fichier.name;
+
+    const lecteur = new FileReader();
+    lecteur.onload = function (e) {
+      const resultat = e.target.result; // ex : "data:image/png;base64,iVBORw0..."
+      const base64 = resultat.split(',')[1]; // on garde uniquement la partie encodée
+
+      nouvelleImageBase64 = base64;
+      nouvelleImageMimeType = fichier.type;
+      nouvelleImageNomFichier = fichier.name;
+
+      document.getElementById('logoPreview').src = resultat; // aperçu immédiat
+    };
+    lecteur.readAsDataURL(fichier);
+  });
+
+  // ------------------------------------------------------------------
+  // GROUPES DE ROLES PERSONNALISES (création, ajout/suppression de lignes)
+  // ------------------------------------------------------------------
+
+  // Ajoute un nouveau bloc "groupe de rôle" dans la modale, avec :
+  // - un champ texte pour nommer le rôle (ex. "Patron", "RH"...)
+  // - un tableau de personnes (nom + téléphone) rattachées à ce rôle
+  // - un bouton pour supprimer entièrement le groupe
+  function ajouterGroupe(nomRole, personnes) {
+    compteurGroupe++;
+    const idGroupe = 'groupe_' + compteurGroupe;
+
+    const div = document.createElement('div');
+    div.className = 'groupe-form';
+    div.id = idGroupe;
+    div.innerHTML =
+      '<div class="groupe-form-entete">' +
+        '<input type="text" class="champ-nom-role" placeholder="Nom du rôle (ex: Patron, Comptable...)" value="' + escapeHtml(nomRole || '') + '">' +
+        '<button class="btn-supprimer-groupe" onclick="document.getElementById(\'' + idGroupe + '\').remove()">🗑 Supprimer ce rôle</button>' +
+      '</div>' +
+      '<table><tbody></tbody></table>' +
+      '<button class="btn-add" onclick="ajouterLigneDansGroupe(\'' + idGroupe + '\')">+ Ajouter une personne</button>';
+
+    document.getElementById('groupesRoles').appendChild(div);
+
+    // Pré-remplit les personnes déjà existantes pour ce rôle (mode édition)
+    (personnes || []).forEach(function (p) {
+      ajouterLigneDansGroupe(idGroupe, p.nom, p.telephone);
+    });
+  }
+
+  // Ajoute une ligne (nom + téléphone) dans le tableau d'un groupe de rôle donné
+  function ajouterLigneDansGroupe(idGroupe, nom, telephone) {
     nom = nom || '';
     telephone = telephone || '';
-    const tbody = document.querySelector(role === 'Adjoint' ? '#tableAdjoints tbody' : '#tablePatrons tbody');
+    const tbody = document.querySelector('#' + idGroupe + ' tbody');
     const tr = document.createElement('tr');
-    tr.dataset.role = role; // on retient le rôle sur la ligne pour la sauvegarde
     tr.innerHTML =
-      '<td class="role-col">' + role + '</td>' +
       '<td><input type="text" class="champ-nom" value="' + escapeHtml(nom) + '" placeholder="Nom"></td>' +
       '<td><input type="tel" class="champ-tel" value="' + escapeHtml(telephone) + '" placeholder="Téléphone"></td>' +
       '<td class="del-col"><button class="btn-del" onclick="this.closest(\'tr\').remove()">✕</button></td>';
@@ -473,16 +619,19 @@
     return div.innerHTML;
   }
 
-  // Parcourt les deux tableaux (patrons + adjoints) et construit
-  // la liste "personnes" à envoyer à l'API lors de la sauvegarde.
+  // Parcourt tous les groupes de rôles affichés dans la modale et construit
+  // la liste "personnes" (avec leur rôle) à envoyer à l'API lors de la sauvegarde.
   function collecterPersonnes() {
     const personnes = [];
-    document.querySelectorAll('#tablePatrons tbody tr, #tableAdjoints tbody tr').forEach(function (tr) {
-      const nom = tr.querySelector('.champ-nom').value.trim();
-      const telephone = tr.querySelector('.champ-tel').value.trim();
-      if (nom || telephone) {
-        personnes.push({ role: tr.dataset.role, nom: nom, telephone: telephone });
-      }
+    document.querySelectorAll('.groupe-form').forEach(function (groupe) {
+      const nomRole = groupe.querySelector('.champ-nom-role').value.trim() || 'Autre';
+      groupe.querySelectorAll('tbody tr').forEach(function (tr) {
+        const nom = tr.querySelector('.champ-nom').value.trim();
+        const telephone = tr.querySelector('.champ-tel').value.trim();
+        if (nom || telephone) {
+          personnes.push({ role: nomRole, nom: nom, telephone: telephone });
+        }
+      });
     });
     return personnes;
   }
@@ -501,9 +650,19 @@
     const entreprise = {
       id: entrepriseEnCoursId, // null si nouvelle entreprise
       nom: document.getElementById('nomEntreprise').value.trim(),
-      logo: document.getElementById('logoUrl').value.trim(),
+      logo: logoActuelUrl, // utilisé seulement si aucune nouvelle image n'a été choisie
       personnes: collecterPersonnes()
     };
+
+    // Si l'utilisateur a choisi une nouvelle image sur son PC, on l'ajoute
+    // au payload : le serveur la téléversera sur Drive et remplacera le logo.
+    if (nouvelleImageBase64) {
+      entreprise.imageData = {
+        base64: nouvelleImageBase64,
+        mimeType: nouvelleImageMimeType,
+        nomFichier: nouvelleImageNomFichier
+      };
+    }
 
     try {
       // Astuce : on ne met pas de header "Content-Type: application/json"
