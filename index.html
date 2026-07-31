@@ -52,12 +52,19 @@
     letter-spacing: 0.02em;
   }
 
-  /* ---------- Barre de recherche ---------- */
+  /* ---------- Barre d'outils : recherche + filtre par type ---------- */
+  .barre-outils {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
   .barre-recherche {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 22px;
+    flex: 1;
+    min-width: 220px;
     background: var(--bg-carte);
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -74,6 +81,30 @@
     padding: 4px 0;
   }
   .barre-recherche input::placeholder { color: var(--text-muted); }
+
+  /* Contrôle "segmenté" utilisé pour le filtre par type (Tous / Privé / Public)
+     et pour le choix du type dans la modale */
+  .segmente {
+    display: flex;
+    background: var(--bg-carte);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 3px;
+  }
+  .segmente button {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .segmente button:hover { color: var(--text); }
+  .segmente button.actif { background: var(--rouge); color: #fff; }
 
   /* ---------- Boutons génériques ---------- */
   .btn {
@@ -115,12 +146,29 @@
     flex-shrink: 0;
   }
   .carte-contenu { flex: 1; min-width: 0; }
+  .carte-entete {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
   .carte-nom {
     font-size: 17px;
     font-weight: 700;
     color: var(--or-clair);
-    margin: 0 0 8px 0;
   }
+  /* Petite étiquette indiquant si l'entreprise est privée ou un service public */
+  .badge-type {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .badge-type.prive { background: rgba(154, 34, 67, 0.25); color: var(--rouge-clair); }
+  .badge-type.public { background: rgba(212, 175, 55, 0.2); color: var(--or-clair); }
+
   .groupe-role {
     font-size: 12px;
     text-transform: uppercase;
@@ -183,7 +231,7 @@
     color: var(--text-muted);
     font-weight: 600;
   }
-  input[type="text"], input[type="tel"] {
+  input[type="text"], input[type="tel"], input[type="url"] {
     width: 100%;
     padding: 8px 10px;
     background: var(--bg-input);
@@ -197,27 +245,10 @@
   /* Bordure dorée au focus, pour rester dans la charte */
   input:focus { outline: none; border-color: var(--or); }
 
-  /* Bouton stylé pour le champ "fichier" (upload du logo) */
-  input[type="file"] {
-    display: none;
-  }
-  .btn-fichier {
-    display: inline-block;
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    color: var(--or-clair);
-    padding: 7px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    margin-top: 3px;
-  }
-  .btn-fichier:hover { border-color: var(--or); }
-  #nomFichierLogo {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-left: 8px;
-  }
+  /* Sélecteur "Entreprise privée / Service public" dans la modale */
+  .choix-type { margin-bottom: 18px; }
+  .choix-type .segmente { width: 100%; }
+  .choix-type .segmente button { flex: 1; }
 
   /* ---------- Groupes de rôles personnalisés ---------- */
   .groupe-form {
@@ -299,16 +330,25 @@
   </div>
 
   <!-- ============================================================
-       BARRE DE RECHERCHE : filtre la liste par nom d'entreprise
-       (le filtrage se fait uniquement côté navigateur, en JS,
-       sur les données déjà chargées depuis le Google Sheet)
+       BARRE D'OUTILS :
+       - recherche par nom (filtrage en direct, côté navigateur)
+       - filtre par type : Tous / Entreprises privées / Services publics
+       Les deux se combinent, et la liste reste triée par ordre alphabétique.
        ============================================================ -->
-  <div class="barre-recherche">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a0a5ab" stroke-width="2">
-      <circle cx="11" cy="11" r="7"></circle>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-    </svg>
-    <input type="text" id="champRecherche" placeholder="Rechercher une entreprise par nom...">
+  <div class="barre-outils">
+    <div class="barre-recherche">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a0a5ab" stroke-width="2">
+        <circle cx="11" cy="11" r="7"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input type="text" id="champRecherche" placeholder="Rechercher une entreprise par nom...">
+    </div>
+
+    <div class="segmente" id="filtreType">
+      <button class="actif" data-valeur="Tous" onclick="changerFiltreType('Tous')">Tous</button>
+      <button data-valeur="Privé" onclick="changerFiltreType('Privé')">Privées</button>
+      <button data-valeur="Public" onclick="changerFiltreType('Public')">Publics</button>
+    </div>
   </div>
 
   <!-- Conteneur où les cartes d'entreprises sont injectées dynamiquement -->
@@ -325,20 +365,27 @@
   <div class="modal">
     <h2 id="modalTitre">Nouvelle entreprise</h2>
 
-    <!-- Logo (upload depuis le PC) + nom de l'entreprise -->
+    <!-- Logo (URL) + nom de l'entreprise -->
     <div class="header-row">
       <img id="logoPreview" src="https://via.placeholder.com/64?text=Logo">
       <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
         <div>
-          <label>Logo</label><br>
-          <label class="btn-fichier" for="fichierLogo">📁 Choisir une image</label>
-          <input type="file" id="fichierLogo" accept="image/*">
-          <span id="nomFichierLogo"></span>
+          <label>URL du logo</label>
+          <input type="url" id="logoUrl" placeholder="https://.../logo.png">
         </div>
         <div>
           <label>Nom de l'entreprise</label>
           <input type="text" id="nomEntreprise" placeholder="Nom de l'entreprise">
         </div>
+      </div>
+    </div>
+
+    <!-- Choix du type : entreprise privée ou service public -->
+    <div class="choix-type">
+      <label>Type</label>
+      <div class="segmente" id="choixType" style="margin-top: 4px;">
+        <button class="actif" data-valeur="Privé" onclick="selectionnerType('Privé')">🏢 Entreprise privée</button>
+        <button data-valeur="Public" onclick="selectionnerType('Public')">🏛️ Service public</button>
       </div>
     </div>
 
@@ -364,24 +411,21 @@
   // Cette URL sert d'API : le HTML lui envoie des requêtes GET (lire)
   // et POST (créer / modifier / supprimer).
   // ==================================================================
-  const API_URL = 'https://script.google.com/macros/s/AKfycbw_C3mSqb3ly3n-zpjbPIL4RkdwegXl87ILJPJMimcPgHEJlrzw-H1zIuM9OIpNZfbqLQ/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyf9E7ze3WQ1iZwUbYU_Sc4Pw76a3vebgh0mTkzm0evWzSHY4crAIkmUlmRB2w9mWlE2g/exec';
 
   // Mémorise en local la liste complète reçue du Sheet, pour pouvoir
-  // filtrer/rechercher instantanément sans refaire d'appel réseau.
+  // filtrer/rechercher/trier instantanément sans refaire d'appel réseau.
   let toutesLesEntreprises = [];
+
+  // Filtre de type actuellement sélectionné : 'Tous', 'Privé' ou 'Public'
+  let filtreTypeActuel = 'Tous';
 
   // ID de l'entreprise actuellement éditée dans la modale.
   // null = on est en mode "création" plutôt qu'"édition".
   let entrepriseEnCoursId = null;
 
-  // URL du logo déjà existant (utilisée si l'utilisateur ne change pas l'image)
-  let logoActuelUrl = '';
-
-  // Données de la nouvelle image sélectionnée sur le PC, en attente d'envoi.
-  // Restent à null tant que l'utilisateur n'a pas choisi de nouveau fichier.
-  let nouvelleImageBase64 = null;
-  let nouvelleImageMimeType = null;
-  let nouvelleImageNomFichier = null;
+  // Type sélectionné dans la modale ('Privé' ou 'Public')
+  let typeSelectionne = 'Privé';
 
   // Compteur utilisé pour donner un identifiant unique à chaque groupe de rôle créé
   let compteurGroupe = 0;
@@ -400,32 +444,47 @@
       if (!data.success) throw new Error(data.error || 'Erreur inconnue');
 
       toutesLesEntreprises = data.entreprises || [];
-      appliquerTriEtFiltre(); // trie + affiche (en tenant compte d'une éventuelle recherche déjà tapée)
+      appliquerTriEtFiltre(); // trie + filtre + affiche
     } catch (err) {
       liste.innerHTML = '<div class="vide">Erreur de chargement : ' + escapeHtml(err.message) + '</div>';
     }
   }
 
   // ------------------------------------------------------------------
-  // TRI ALPHABETIQUE + RECHERCHE
+  // TRI ALPHABETIQUE + RECHERCHE + FILTRE PAR TYPE
   // ------------------------------------------------------------------
 
+  // Change le filtre de type actif (Tous / Privé / Public), met à jour
+  // le style des boutons, puis réaffiche la liste en conséquence.
+  function changerFiltreType(valeur) {
+    filtreTypeActuel = valeur;
+    document.querySelectorAll('#filtreType button').forEach(function (btn) {
+      btn.classList.toggle('actif', btn.dataset.valeur === valeur);
+    });
+    appliquerTriEtFiltre();
+  }
+
   // Trie les entreprises par nom (A -> Z, insensible aux accents/majuscules),
-  // puis applique le filtre de recherche en cours, et affiche le résultat.
+  // applique le filtre de recherche texte, puis le filtre de type, et affiche.
   function appliquerTriEtFiltre() {
     const terme = document.getElementById('champRecherche').value.trim().toLowerCase();
 
     // 1) Tri alphabétique par nom d'entreprise
-    const triees = [...toutesLesEntreprises].sort(function (a, b) {
+    let resultat = [...toutesLesEntreprises].sort(function (a, b) {
       return (a.nom || '').localeCompare(b.nom || '', 'fr', { sensitivity: 'base' });
     });
 
-    // 2) Filtre sur le nom si l'utilisateur a tapé quelque chose
-    const filtrees = terme
-      ? triees.filter(function (ent) { return (ent.nom || '').toLowerCase().includes(terme); })
-      : triees;
+    // 2) Filtre texte sur le nom
+    if (terme) {
+      resultat = resultat.filter(function (ent) { return (ent.nom || '').toLowerCase().includes(terme); });
+    }
 
-    afficherListe(filtrees);
+    // 3) Filtre par type (Privé / Public), sauf si "Tous" est sélectionné
+    if (filtreTypeActuel !== 'Tous') {
+      resultat = resultat.filter(function (ent) { return (ent.type || 'Privé') === filtreTypeActuel; });
+    }
+
+    afficherListe(resultat);
   }
 
   // Relance le tri/filtre à chaque frappe dans la barre de recherche
@@ -445,12 +504,19 @@
     }
 
     entreprises.forEach(function (ent) {
+      const type = ent.type || 'Privé';
+      const classeBadge = type === 'Public' ? 'public' : 'prive';
+      const texteBadge = type === 'Public' ? 'Service public' : 'Privée';
+
       const carte = document.createElement('div');
       carte.className = 'carte';
       carte.innerHTML =
         '<img class="logo" src="' + (ent.logo || 'https://via.placeholder.com/56?text=Logo') + '">' +
         '<div class="carte-contenu">' +
-          '<div class="carte-nom">' + escapeHtml(ent.nom || '(Sans nom)') + '</div>' +
+          '<div class="carte-entete">' +
+            '<div class="carte-nom">' + escapeHtml(ent.nom || '(Sans nom)') + '</div>' +
+            '<span class="badge-type ' + classeBadge + '">' + texteBadge + '</span>' +
+          '</div>' +
           renderGroupesPourAffichage(ent.personnes) +
         '</div>' +
         '<div class="carte-actions">' +
@@ -497,20 +563,13 @@
     document.getElementById('overlay').classList.add('actif');
     document.getElementById('status').textContent = '';
     document.getElementById('groupesRoles').innerHTML = '';
-    document.getElementById('fichierLogo').value = '';
-    document.getElementById('nomFichierLogo').textContent = '';
-
-    // Réinitialise les informations d'image en attente
-    nouvelleImageBase64 = null;
-    nouvelleImageMimeType = null;
-    nouvelleImageNomFichier = null;
 
     if (entreprise) {
       entrepriseEnCoursId = entreprise.id;
-      logoActuelUrl = entreprise.logo || '';
       document.getElementById('modalTitre').textContent = "Modifier l'entreprise";
+      document.getElementById('logoUrl').value = entreprise.logo || '';
       document.getElementById('nomEntreprise').value = entreprise.nom || '';
-      document.getElementById('logoPreview').src = logoActuelUrl || 'https://via.placeholder.com/64?text=Logo';
+      selectionnerType(entreprise.type || 'Privé');
 
       // Reconstruit les groupes de rôles à partir des personnes existantes,
       // en conservant l'ordre d'apparition des rôles.
@@ -529,44 +588,39 @@
       });
     } else {
       entrepriseEnCoursId = null;
-      logoActuelUrl = '';
       document.getElementById('modalTitre').textContent = 'Nouvelle entreprise';
+      document.getElementById('logoUrl').value = '';
       document.getElementById('nomEntreprise').value = '';
-      document.getElementById('logoPreview').src = 'https://via.placeholder.com/64?text=Logo';
+      selectionnerType('Privé');
 
       // Deux groupes par défaut pour rester pratique, mais entièrement
       // renommables ou supprimables par l'utilisateur.
       ajouterGroupe('Patron');
       ajouterGroupe('Adjoint');
     }
+    mettreAJourApercuLogo();
   }
 
   function fermerModal() {
     document.getElementById('overlay').classList.remove('actif');
   }
 
-  // Quand l'utilisateur choisit un fichier image sur son PC :
-  // on le convertit en base64 pour pouvoir l'envoyer à l'API,
-  // et on affiche un aperçu immédiat sans attendre l'enregistrement.
-  document.getElementById('fichierLogo').addEventListener('change', function (event) {
-    const fichier = event.target.files[0];
-    if (!fichier) return;
+  // Met à jour la miniature du logo affichée dans la modale
+  // à chaque fois que l'utilisateur modifie l'URL du logo.
+  function mettreAJourApercuLogo() {
+    const url = document.getElementById('logoUrl').value.trim();
+    document.getElementById('logoPreview').src = url || 'https://via.placeholder.com/64?text=Logo';
+  }
+  document.getElementById('logoUrl').addEventListener('input', mettreAJourApercuLogo);
 
-    document.getElementById('nomFichierLogo').textContent = fichier.name;
-
-    const lecteur = new FileReader();
-    lecteur.onload = function (e) {
-      const resultat = e.target.result; // ex : "data:image/png;base64,iVBORw0..."
-      const base64 = resultat.split(',')[1]; // on garde uniquement la partie encodée
-
-      nouvelleImageBase64 = base64;
-      nouvelleImageMimeType = fichier.type;
-      nouvelleImageNomFichier = fichier.name;
-
-      document.getElementById('logoPreview').src = resultat; // aperçu immédiat
-    };
-    lecteur.readAsDataURL(fichier);
-  });
+  // Sélectionne le type d'entreprise (Privé / Public) dans la modale
+  // et met à jour visuellement le bouton actif.
+  function selectionnerType(valeur) {
+    typeSelectionne = valeur;
+    document.querySelectorAll('#choixType button').forEach(function (btn) {
+      btn.classList.toggle('actif', btn.dataset.valeur === valeur);
+    });
+  }
 
   // ------------------------------------------------------------------
   // GROUPES DE ROLES PERSONNALISES (création, ajout/suppression de lignes)
@@ -650,19 +704,10 @@
     const entreprise = {
       id: entrepriseEnCoursId, // null si nouvelle entreprise
       nom: document.getElementById('nomEntreprise').value.trim(),
-      logo: logoActuelUrl, // utilisé seulement si aucune nouvelle image n'a été choisie
+      logo: document.getElementById('logoUrl').value.trim(),
+      type: typeSelectionne, // 'Privé' ou 'Public'
       personnes: collecterPersonnes()
     };
-
-    // Si l'utilisateur a choisi une nouvelle image sur son PC, on l'ajoute
-    // au payload : le serveur la téléversera sur Drive et remplacera le logo.
-    if (nouvelleImageBase64) {
-      entreprise.imageData = {
-        base64: nouvelleImageBase64,
-        mimeType: nouvelleImageMimeType,
-        nomFichier: nouvelleImageNomFichier
-      };
-    }
 
     try {
       // Astuce : on ne met pas de header "Content-Type: application/json"
