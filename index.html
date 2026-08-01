@@ -533,6 +533,12 @@
 
       const carte = document.createElement('div');
       carte.className = 'carte';
+      // NOTE : on n'utilise plus onclick="..." avec les données de l'entreprise
+      // injectées directement dans le HTML (via JSON.stringify), car un nom,
+      // un commentaire ou une URL contenant une apostrophe ou un guillemet
+      // cassait silencieusement l'attribut HTML et rendait le bouton inactif.
+      // A la place, on stocke juste l'ID (data-id) et on va rechercher les
+      // données correspondantes dans toutesLesEntreprises au moment du clic.
       carte.innerHTML =
         '<img class="logo" src="' + (ent.logo || 'https://via.placeholder.com/56?text=Logo') + '">' +
         '<div class="carte-contenu">' +
@@ -543,10 +549,26 @@
           renderGroupesPourAffichage(ent.personnes) +
         '</div>' +
         '<div class="carte-actions">' +
-          '<button class="btn btn-secondary" onclick=\'ouvrirModal(' + JSON.stringify(ent) + ')\'>Modifier</button>' +
-          '<button class="btn btn-danger" onclick="supprimerEntreprise(\'' + ent.id + '\')">Supprimer</button>' +
+          '<button class="btn btn-secondary btn-modifier" data-id="' + ent.id + '">Modifier</button>' +
+          '<button class="btn btn-danger btn-supprimer" data-id="' + ent.id + '">Supprimer</button>' +
         '</div>';
       liste.appendChild(carte);
+    });
+
+    // Attache les clics sur "Modifier" : on recherche l'entreprise complète
+    // par son ID dans la liste en mémoire, puis on ouvre la modale avec.
+    document.querySelectorAll('.btn-modifier').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const ent = toutesLesEntreprises.find(function (e) { return e.id === btn.dataset.id; });
+        if (ent) ouvrirModal(ent);
+      });
+    });
+
+    // Attache les clics sur "Supprimer"
+    document.querySelectorAll('.btn-supprimer').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        supprimerEntreprise(btn.dataset.id);
+      });
     });
   }
 
