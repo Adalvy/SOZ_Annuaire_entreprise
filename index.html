@@ -184,6 +184,12 @@
     padding: 2px 0;
   }
   .personne-ligne .tel { color: var(--text-muted); }
+  .personne-commentaire {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 0 0 4px 0;
+  }
   .carte-actions { display: flex; flex-direction: column; gap: 6px; }
 
   .vide { text-align: center; color: var(--text-muted); padding: 40px 0; }
@@ -293,6 +299,23 @@
   table { width: 100%; border-collapse: collapse; }
   td { padding: 3px 4px; }
   .del-col { width: 28px; text-align: center; }
+  .ligne-personne {
+    border-bottom: 1px solid var(--border);
+    padding: 6px 0;
+  }
+  .ligne-personne:last-child { border-bottom: none; }
+  .ligne-personne-champs {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .ligne-personne-champs input[type="text"].champ-nom { flex: 1; }
+  .ligne-personne-champs input[type="tel"].champ-tel { flex: 1; }
+  .champ-commentaire {
+    width: 100%;
+    margin-top: 4px;
+    font-size: 13px;
+  }
   .btn-del { background: none; border: none; color: #e08a8a; cursor: pointer; font-size: 15px; }
   .btn-add {
     background: var(--bg-carte);
@@ -411,7 +434,7 @@
   // Cette URL sert d'API : le HTML lui envoie des requêtes GET (lire)
   // et POST (créer / modifier / supprimer).
   // ==================================================================
-  const API_URL = 'https://script.google.com/macros/s/AKfycbyy5JxbNbsZvH_j1q1JtQIGytg_t2VauZDz0o8zQsusAnkYvtF4sBwiojwirW2mzIE2-g/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxdKgHYuRlmagt6gVdp4ujRa1It3yGS--J0QcBcYn9Fzupsn8kC81NUJzdA463MO9Y_9A/exec';
 
   // Mémorise en local la liste complète reçue du Sheet, pour pouvoir
   // filtrer/rechercher/trier instantanément sans refaire d'appel réseau.
@@ -548,6 +571,9 @@
       html += '<div class="groupe-role">' + escapeHtml(role) + '</div>';
       personnesParRole[role].forEach(function (p) {
         html += '<div class="personne-ligne"><span>' + escapeHtml(p.nom) + '</span><span class="tel">' + escapeHtml(p.telephone) + '</span></div>';
+        if (p.commentaire) {
+          html += '<div class="personne-commentaire">💬 ' + escapeHtml(p.commentaire) + '</div>';
+        }
       });
     });
     return html;
@@ -642,33 +668,40 @@
         '<input type="text" class="champ-nom-role" placeholder="Nom du rôle (ex: Patron, Comptable...)" value="' + escapeHtml(nomRole || '') + '">' +
         '<button class="btn-supprimer-groupe" onclick="document.getElementById(\'' + idGroupe + '\').remove()">🗑 Supprimer ce rôle</button>' +
       '</div>' +
-      '<table><tbody></tbody></table>' +
+      '<div class="liste-personnes"></div>' +
       '<button class="btn-add" onclick="ajouterLigneDansGroupe(\'' + idGroupe + '\')">+ Ajouter une personne</button>';
 
     document.getElementById('groupesRoles').appendChild(div);
 
     // Pré-remplit les personnes déjà existantes pour ce rôle (mode édition)
     (personnes || []).forEach(function (p) {
-      ajouterLigneDansGroupe(idGroupe, p.nom, p.telephone);
+      ajouterLigneDansGroupe(idGroupe, p.nom, p.telephone, p.commentaire);
     });
   }
 
-  // Ajoute une ligne (nom + téléphone) dans le tableau d'un groupe de rôle donné.
-  // Si la ligne est toute nouvelle (bouton "+ Ajouter une personne", aucun
-  // argument passé), le téléphone est préempli avec "555-" par défaut.
-  // Si on recharge une personne déjà existante (mode édition), on garde sa
-  // vraie valeur telle quelle, même si elle est vide.
-  function ajouterLigneDansGroupe(idGroupe, nom, telephone) {
+  // Ajoute une ligne (nom + téléphone + commentaire) pour une personne, dans
+  // le groupe de rôle donné. Si la ligne est toute nouvelle (bouton
+  // "+ Ajouter une personne", aucun argument passé), le téléphone est
+  // préempli avec "555-" par défaut. Si on recharge une personne déjà
+  // existante (mode édition), on garde ses vraies valeurs telles quelles,
+  // même si elles sont vides.
+  function ajouterLigneDansGroupe(idGroupe, nom, telephone, commentaire) {
     const estNouvelleLigneVide = (nom === undefined && telephone === undefined);
     nom = nom || '';
     telephone = telephone !== undefined ? telephone : (estNouvelleLigneVide ? '555-' : '');
-    const tbody = document.querySelector('#' + idGroupe + ' tbody');
-    const tr = document.createElement('tr');
-    tr.innerHTML =
-      '<td><input type="text" class="champ-nom" value="' + escapeHtml(nom) + '" placeholder="Nom"></td>' +
-      '<td><input type="tel" class="champ-tel" value="' + escapeHtml(telephone) + '" placeholder="Téléphone"></td>' +
-      '<td class="del-col"><button class="btn-del" onclick="this.closest(\'tr\').remove()">✕</button></td>';
-    tbody.appendChild(tr);
+    commentaire = commentaire || '';
+
+    const conteneur = document.querySelector('#' + idGroupe + ' .liste-personnes');
+    const div = document.createElement('div');
+    div.className = 'ligne-personne';
+    div.innerHTML =
+      '<div class="ligne-personne-champs">' +
+        '<input type="text" class="champ-nom" value="' + escapeHtml(nom) + '" placeholder="Nom">' +
+        '<input type="tel" class="champ-tel" value="' + escapeHtml(telephone) + '" placeholder="Téléphone">' +
+        '<div class="del-col"><button class="btn-del" onclick="this.closest(\'.ligne-personne\').remove()">✕</button></div>' +
+      '</div>' +
+      '<input type="text" class="champ-commentaire" value="' + escapeHtml(commentaire) + '" placeholder="Commentaire (optionnel)">';
+    conteneur.appendChild(div);
   }
 
   // Echappe le texte pour éviter les injections HTML (sécurité basique)
@@ -679,16 +712,17 @@
   }
 
   // Parcourt tous les groupes de rôles affichés dans la modale et construit
-  // la liste "personnes" (avec leur rôle) à envoyer à l'API lors de la sauvegarde.
+  // la liste "personnes" (avec leur rôle et commentaire) à envoyer à l'API.
   function collecterPersonnes() {
     const personnes = [];
     document.querySelectorAll('.groupe-form').forEach(function (groupe) {
       const nomRole = groupe.querySelector('.champ-nom-role').value.trim() || 'Autre';
-      groupe.querySelectorAll('tbody tr').forEach(function (tr) {
-        const nom = tr.querySelector('.champ-nom').value.trim();
-        const telephone = tr.querySelector('.champ-tel').value.trim();
-        if (nom || telephone) {
-          personnes.push({ role: nomRole, nom: nom, telephone: telephone });
+      groupe.querySelectorAll('.ligne-personne').forEach(function (ligne) {
+        const nom = ligne.querySelector('.champ-nom').value.trim();
+        const telephone = ligne.querySelector('.champ-tel').value.trim();
+        const commentaire = ligne.querySelector('.champ-commentaire').value.trim();
+        if (nom || telephone || commentaire) {
+          personnes.push({ role: nomRole, nom: nom, telephone: telephone, commentaire: commentaire });
         }
       });
     });
