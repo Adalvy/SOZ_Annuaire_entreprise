@@ -125,14 +125,7 @@
   .btn-danger:hover { background: #4a2529; }
 
   /* ---------- Liste des entreprises (cartes) ---------- */
-  /* Liste en grille : 2 colonnes sur écran normal, 1 seule colonne
-     automatiquement en dessous de 700px de large (voir media query plus bas) */
-  #liste {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
-    align-items: start;
-  }
+  #liste { display: flex; flex-direction: column; gap: 14px; }
 
   .carte {
     background: var(--bg-carte);
@@ -201,7 +194,6 @@
   .carte-actions { display: flex; flex-direction: column; gap: 6px; }
 
   .vide { text-align: center; color: var(--text-muted); padding: 40px 0; }
-  #liste .vide { grid-column: 1 / -1; } /* occupe toute la largeur, même en grille 2 colonnes */
 
   /* ==================================================================
      MODALE (fenêtre de création / édition d'une entreprise)
@@ -378,17 +370,6 @@
   }
   .pied-de-page .support strong {
     color: var(--text);
-  }
-
-  /* ==================================================================
-     RESPONSIVE : en dessous de 700px de large (mobile, fenêtre étroite),
-     on repasse la liste des entreprises sur une seule colonne pour
-     garder des cartes lisibles plutôt que trop étroites.
-     ================================================================== */
-  @media (max-width: 700px) {
-    #liste {
-      grid-template-columns: 1fr;
-    }
   }
 </style>
 </head>
